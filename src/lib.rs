@@ -1,7 +1,7 @@
 //! Regex matchers on character and byte streams.
 
 use regex_automata::{DenseDFA, SparseDFA, StateID, DFA};
-use std::{fmt, io, marker::PhantomData};
+use std::{fmt, io, marker::PhantomData, str::FromStr};
 
 pub use regex_automata::Error;
 
@@ -31,6 +31,13 @@ impl Pattern {
     pub fn new(pattern: &str) -> Result<Self, Error> {
         let automaton = DenseDFA::new(pattern)?;
         Ok(Pattern { automaton })
+    }
+}
+
+impl FromStr for Pattern {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        Self::new(s)
     }
 }
 
