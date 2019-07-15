@@ -312,5 +312,15 @@ mod test {
             false
         );
     }
+
+    #[test]
+    fn debug_rep_pattern() {
+        let pat = Pattern::new("a+b").unwrap();
+        assert!(pat.debug_matches(&Str::new("ab")));
+        assert!(pat.debug_matches(&Str::new("aaaab")));
+        assert!(pat.debug_matches(&Str::new("aaaaaaaaaab")));
+        assert_eq!(pat.debug_matches(&Str::new("b")), false);
+        assert_eq!(pat.debug_matches(&Str::new("abb")), false);
+        assert_eq!(pat.debug_matches(&Str::new("aaaaabb")), false);
     }
 }
