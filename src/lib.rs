@@ -197,36 +197,6 @@ impl<S> crate::sealed::Sealed for Pattern<S, SparseDFA<Vec<u8>, S>> where S: Sta
 mod sealed {
     pub trait Sealed {}
 }
-// === DfaAsRef ===
-
-// trait DfaAsRef<'a, S: StateID> {
-//     type Ref: DFA<ID = S>;
-//     fn as_dfa_ref(&'a self) -> Self::Ref;
-// }
-
-// impl<'a, T, S> DfaAsRef<'a, S> for DenseDFA<T, S>
-// where
-//     T: AsRef<[S]>,
-//     S: StateID + 'a,
-// {
-//     type Ref = DenseDFA<&'a [S], S>;
-
-//     fn as_dfa_ref(&'a self) -> Self::Ref {
-//         self.as_ref()
-//     }
-// }
-
-// impl<'a, T, S> DfaAsRef<'a, S> for SparseDFA<T, S>
-// where
-//     T: AsRef<[u8]>,
-//     S: StateID + 'a,
-// {
-//     type Ref = SparseDFA<&'a [u8], S>;
-
-//     fn as_dfa_ref(&'a self) -> Self::Ref {
-//         self.as_ref()
-//     }
-// }
 
 #[cfg(test)]
 mod test {
