@@ -93,11 +93,11 @@ where
     pub fn matches(mut self, s: &impl AsRef<str>) -> bool {
         for &byte in s.as_ref().as_bytes() {
             self.advance(byte);
-            if self.automaton.is_match_or_dead_state(self.state) {
-                return self.automaton.is_match_state(self.state);
+            if self.automaton.is_dead_state(self.state) {
+                return false;
             }
         }
-        false
+        self.is_matched()
     }
 
     pub fn debug_matches(mut self, d: &impl fmt::Debug) -> bool {
@@ -115,11 +115,11 @@ where
     pub fn read_matches(mut self, io: impl io::Read + Sized) -> io::Result<bool> {
         for r in io.bytes() {
             self.advance(r?);
-            if self.automaton.is_match_or_dead_state(self.state) {
-                return Ok(self.automaton.is_match_state(self.state));
+            if self.automaton.is_dead_state(self.state) {
+                return Ok(false);
             }
         }
-        Ok(false)
+        Ok(self.is_matched())
     }
 }
 
@@ -131,7 +131,7 @@ where
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for &byte in s.as_bytes() {
             self.advance(byte);
-            if self.automaton.is_match_or_dead_state(self.state) {
+            if self.automaton.is_dead_state(self.state) {
                 break;
             }
         }
@@ -149,7 +149,7 @@ where
         for &byte in bytes {
             self.advance(byte);
             i += 1;
-            if self.automaton.is_match_or_dead_state(self.state) {
+            if self.automaton.is_dead_state(self.state) {
                 break;
             }
         }
