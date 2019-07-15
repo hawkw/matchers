@@ -52,6 +52,11 @@ where
     pub fn display_matches(&self, d: &impl fmt::Display) -> bool {
         self.matcher().display_matches(d)
     }
+
+    #[inline]
+    pub fn read_matches(&self, io: impl io::Read) -> io::Result<bool> {
+        self.matcher().read_matches(io)
+    }
 }
 
 // === impl Matcher ===
@@ -105,6 +110,16 @@ where
         use std::fmt::Write;
         write!(&mut self, "{}", d).expect("matcher write impl should not fail");
         self.is_matched()
+    }
+
+    pub fn read_matches(mut self, io: impl io::Read + Sized) -> io::Result<bool> {
+        for r in io.bytes() {
+            self.advance(r?);
+            if self.automaton.is_match_or_dead_state(self.state) {
+                return Ok(self.automaton.is_match_state(self.state));
+            }
+        }
+        Ok(false)
     }
 }
 
@@ -217,22 +232,85 @@ mod sealed {
 mod test {
     use super::*;
 
-    struct HelloWorld;
-    impl fmt::Debug for HelloWorld {
+    struct Str<'a>(&'a str);
+    struct ReadStr<'a>(io::Cursor<&'a [u8]>);
+
+    impl<'a> fmt::Debug for Str<'a> {
         fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-            write!(f, "hello world")
+            write!(f, "{}", self.0)
+        }
+    }
+
+    impl<'a> fmt::Display for Str<'a> {
+        fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+            write!(f, "{}", self.0)
+        }
+    }
+
+    impl<'a> io::Read for ReadStr<'a> {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            self.0.read(buf)
+        }
+    }
+
+    impl Str<'static> {
+        fn hello_world() -> Self {
+            Self::new("hello world")
+        }
+    }
+
+    impl<'a> Str<'a> {
+        fn new(s: &'a str) -> Self {
+            Str(s)
+        }
+
+        fn to_reader(self) -> ReadStr<'a> {
+            ReadStr(io::Cursor::new(self.0.as_bytes()))
         }
     }
 
     #[test]
     fn debug_matches() {
         let pat = Pattern::new("hello world").unwrap();
-        assert!(pat.debug_matches(&HelloWorld));
+        assert!(pat.debug_matches(&Str::hello_world()));
 
         let pat = Pattern::new("hel+o w[orl]{3}d").unwrap();
-        assert!(pat.debug_matches(&HelloWorld));
+        assert!(pat.debug_matches(&Str::hello_world()));
 
         let pat = Pattern::new("goodbye world").unwrap();
-        assert_eq!(pat.debug_matches(&HelloWorld), false);
+        assert_eq!(pat.debug_matches(&Str::hello_world()), false);
+    }
+
+    #[test]
+    fn display_matches() {
+        let pat = Pattern::new("hello world").unwrap();
+        assert!(pat.display_matches(&Str::hello_world()));
+
+        let pat = Pattern::new("hel+o w[orl]{3}d").unwrap();
+        assert!(pat.display_matches(&Str::hello_world()));
+
+        let pat = Pattern::new("goodbye world").unwrap();
+        assert_eq!(pat.display_matches(&Str::hello_world()), false);
+    }
+
+    #[test]
+    fn reader_matches() {
+        let pat = Pattern::new("hello world").unwrap();
+        assert!(pat
+            .read_matches(Str::hello_world().to_reader())
+            .expect("no io error should occur"));
+
+        let pat = Pattern::new("hel+o w[orl]{3}d").unwrap();
+        assert!(pat
+            .read_matches(Str::hello_world().to_reader())
+            .expect("no io error should occur"));
+
+        let pat = Pattern::new("goodbye world").unwrap();
+        assert_eq!(
+            pat.read_matches(Str::hello_world().to_reader())
+                .expect("no io error should occur"),
+            false
+        );
+    }
     }
 }
