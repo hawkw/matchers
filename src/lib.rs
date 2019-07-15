@@ -5,6 +5,7 @@ use std::{fmt, io, marker::PhantomData};
 
 pub use regex_automata::Error;
 
+#[derive(Debug, Clone)]
 pub struct Pattern<S = usize, A = DenseDFA<Vec<S>, S>>
 where
     S: StateID,
@@ -13,6 +14,7 @@ where
     automaton: A,
 }
 
+#[derive(Debug, Clone)]
 pub struct Matcher<'a, S = usize, A = DenseDFA<&'a [S], S>>
 where
     S: StateID,
