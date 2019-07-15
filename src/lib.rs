@@ -1,3 +1,5 @@
+//! Regex matchers on character and byte streams.
+
 use regex_automata::{DenseDFA, SparseDFA, StateID, DFA};
 use std::{fmt, io, marker::PhantomData};
 
@@ -47,7 +49,7 @@ where
     }
 
     #[inline]
-    pub fn display_matches(&self, d: &impl fmt::Display) -> bool  {
+    pub fn display_matches(&self, d: &impl fmt::Display) -> bool {
         self.matcher().display_matches(d)
     }
 }
@@ -150,13 +152,10 @@ where
     S: StateID + 'a,
 {
     type Automaton: DFA<ID = S>;
-    fn matcher(&'a self) -> Matcher<'a, S, Self::Automaton,>;
+    fn matcher(&'a self) -> Matcher<'a, S, Self::Automaton>;
 }
 
-impl<S> crate::sealed::Sealed for Pattern<S, DenseDFA<Vec<S>, S>>
-where
-    S: StateID,
-{}
+impl<S> crate::sealed::Sealed for Pattern<S, DenseDFA<Vec<S>, S>> where S: StateID {}
 
 impl<'a, S> ToMatcher<'a, S> for Pattern<S, DenseDFA<Vec<S>, S>>
 where
@@ -178,10 +177,7 @@ where
     }
 }
 
-impl<S> crate::sealed::Sealed for Pattern<S, SparseDFA<Vec<u8>, S>>
-where
-    S: StateID,
-{}
+impl<S> crate::sealed::Sealed for Pattern<S, SparseDFA<Vec<u8>, S>> where S: StateID {}
 
 mod sealed {
     pub trait Sealed {}
