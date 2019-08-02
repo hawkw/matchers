@@ -6,14 +6,16 @@ Regular expression matching on Rust streams.
 [![Documentation][docs-badge]][docs-url]
 [![MIT licensed][mit-badge]][mit-url]
 [![Build Status][azure-badge]][azure-url]
-[![Gitter chat][gitter-badge]][gitter-url]
+
 
 [crates-badge]: https://img.shields.io/crates/v/matchers.svg
 [crates-url]: https://crates.io/crates/matchers
 [docs-badge]: https://docs.rs/matchers/badge.svg
-[docs-url]: https://docs.rs/tracing
+[docs-url]: https://docs.rs/matchers
 [mit-badge]: https://img.shields.io/badge/license-MIT-blue.svg
 [mit-url]: LICENSE
+[azure-badge]: https://dev.azure.com/eliza0132/eliza/_apis/build/status/hawkw.matchers?branchName=master
+[azure-url]: https://dev.azure.com/eliza0132/eliza/_build/latest?definitionId=1&branchName=maste
 
 ## Overview
 
