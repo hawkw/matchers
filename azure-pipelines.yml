@@ -6,4 +6,4 @@ resources:
     - repository: templates
       type: github
       name: crate-ci/azure-pipelines
-      endpoint: PLACEHOLDER
+      endpoint: hawkw
