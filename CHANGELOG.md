@@ -1,5 +1,15 @@
+<a name="0.1.0"></a>
+## 0.1.0 (2021-02-25)
+
+
+#### Features
+
+* **Pattern:**  add `Pattern::new_anchored` (#2) ([81f4c1c0](https://github.com/hawkw/matchers/commit/81f4c1c0ece4908d2e62607bb8a5690646404dec))
+
+
+
 <a name="0.0.1"></a>
-##  (2019-08-02)
+## 0.0.1 (2019-08-02)
 
 
 #### Features

@@ -1,6 +1,6 @@
 [package]
 name = "matchers"
-version = "0.0.1"
+version = "0.1.0"
 authors = ["Eliza Weisman <eliza@buoyant.io>"]
 edition = "2018"
 license = "MIT"
