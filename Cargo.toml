@@ -15,7 +15,6 @@ categories = ["text-processing"]
 keywords = ["regex", "match", "pattern", "streaming"]
 
 [badges]
-azure-devops = { project = "eliza0132/eliza", pipeline = "hawkw.matchers", build = "1" }
 maintenance = { status = "experimental" }
 
 [dependencies]
