@@ -70,6 +70,22 @@ impl Pattern {
     /// though the regular expression started with a `.*?`, which enables a
     /// match to appear anywhere. If this is not the desired behavior, use
     /// [`Pattern::new_anchored`] instead.
+    ///
+    /// For example:
+    /// ```
+    /// use matchers::Pattern;
+    ///
+    /// // This pattern matches any number of `a`s followed by a `b`.
+    /// let pattern = Pattern::new("a+b").expect("regex is not invalid");
+    ///
+    /// // Of course, the pattern matches an input where the entire sequence of
+    /// // characters matches the pattern:
+    /// assert!(pattern.display_matches(&"aaaaab"));
+    ///
+    /// // And, since the pattern is unanchored, it will also match the
+    /// // sequence when it's followed by non-matching characters:
+    /// assert!(pattern.display_matches(&"hello world! aaaaab"));
+    /// ```
     pub fn new(pattern: &str) -> Result<Self, Error> {
         let automaton = DenseDFA::new(pattern)?;
         Ok(Pattern { automaton })
@@ -82,6 +98,28 @@ impl Pattern {
     /// an input sequence if the first character or byte in the input matches
     /// the pattern. If this is not the desired behavior, use [`Pattern::new`]
     /// instead.
+    ///
+    /// For example:
+    /// ```
+    /// use matchers::Pattern;
+    ///
+    /// // This pattern matches any number of `a`s followed by a `b`.
+    /// let pattern = Pattern::new_anchored("a+b")
+    ///     .expect("regex is not invalid");
+    ///
+    /// // The pattern matches an input where the entire sequence of
+    /// // characters matches the pattern:
+    /// assert!(pattern.display_matches(&"aaaaab"));
+    ///
+    /// // Since the pattern is anchored, it will *not* match an input that
+    /// // begins with non-matching characters:
+    /// assert!(!pattern.display_matches(&"hello world! aaaaab"));
+    ///
+    /// // ...however, if we create a pattern beginning with `.*?`, it will:
+    /// let pattern2 = Pattern::new_anchored(".*?a+b")
+    ///     .expect("regex is not invalid");
+    /// assert!(pattern2.display_matches(&"hello world! aaaaab"));
+    /// ```
     pub fn new_anchored(pattern: &str) -> Result<Self, Error> {
         let automaton = dense::Builder::new().anchored(true).build(pattern)?;
         Ok(Pattern { automaton })
