@@ -28,8 +28,8 @@
 
 use regex_automata::Anchored;
 // use regex_automata::{dense, DenseDFA, SparseDFA, StateID, DFA};
-use regex_automata::dfa::{dense, sparse, StartKind};
 use regex_automata::dfa::Automaton;
+use regex_automata::dfa::{dense, sparse, StartKind};
 use regex_automata::util::primitives::StateID;
 use std::{fmt, io, marker::PhantomData, str::FromStr};
 
@@ -89,7 +89,9 @@ impl Pattern {
     /// ```
     pub fn new(pattern: &str) -> Result<Self, dense::BuildError> {
         let automaton = dense::DFA::new(pattern)?;
-        let start = automaton.universal_start_state(Anchored::No).expect("I hope this works");
+        let start = automaton
+            .universal_start_state(Anchored::No)
+            .expect("I hope this works");
         Ok(Pattern { automaton, start })
     }
 
@@ -126,8 +128,10 @@ impl Pattern {
         let automaton = dense::Builder::new()
             .configure(dense::DFA::config().start_kind(StartKind::Anchored))
             .build(pattern)?;
-        let start = automaton.universal_start_state(Anchored::Yes).expect("I hope this works");
-        Ok(Pattern { automaton, start  })
+        let start = automaton
+            .universal_start_state(Anchored::Yes)
+            .expect("I hope this works");
+        Ok(Pattern { automaton, start })
     }
 }
 
@@ -250,7 +254,8 @@ where
     /// provided.
     #[inline]
     pub fn is_matched(&self) -> bool {
-        self.automaton.is_match_state(self.automaton.next_eoi_state(self.state))
+        self.automaton
+            .is_match_state(self.automaton.next_eoi_state(self.state))
     }
 
     /// Returns `true` if this pattern matches the formatted output of the given
@@ -341,16 +346,14 @@ where
 
 impl crate::sealed::Sealed for Pattern<dense::DFA<Vec<u32>>> {}
 
-impl<'a> ToMatcher<'a> for Pattern<dense::DFA<Vec<u32>>>
-{
+impl<'a> ToMatcher<'a> for Pattern<dense::DFA<Vec<u32>>> {
     type Automaton = dense::DFA<&'a [u32]>;
     fn matcher(&'a self) -> Matcher<'a, Self::Automaton> {
         Matcher::new(self.automaton.as_ref(), self.start)
     }
 }
 
-impl<'a> ToMatcher<'a> for Pattern<sparse::DFA<Vec<u8>>>
-{
+impl<'a> ToMatcher<'a> for Pattern<sparse::DFA<Vec<u8>>> {
     type Automaton = sparse::DFA<&'a [u8]>;
     fn matcher(&'a self) -> Matcher<'a, Self::Automaton> {
         Matcher::new(self.automaton.as_ref(), self.start)
