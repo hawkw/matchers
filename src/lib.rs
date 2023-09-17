@@ -26,35 +26,36 @@
 //! [`regex-automata`]: https://crates.io/crates/regex-automata
 //! [syntax]: https://docs.rs/regex-automata/0.1.7/regex_automata/#syntax
 
-use regex_automata::{dense, DenseDFA, SparseDFA, StateID, DFA};
+use regex_automata::Anchored;
+// use regex_automata::{dense, DenseDFA, SparseDFA, StateID, DFA};
+use regex_automata::dfa::{dense, sparse, StartKind};
+use regex_automata::dfa::Automaton;
+use regex_automata::util::primitives::StateID;
 use std::{fmt, io, marker::PhantomData, str::FromStr};
-
-pub use regex_automata::Error;
 
 /// A compiled match pattern that can match multipe inputs, or return a
 /// [`Matcher`] that matches a single input.
 ///
 /// [`Matcher`]: ../struct.Matcher.html
 #[derive(Debug, Clone)]
-pub struct Pattern<S = usize, A = DenseDFA<Vec<S>, S>>
+pub struct Pattern<A = dense::DFA<Vec<u32>>>
 where
-    S: StateID,
-    A: DFA<ID = S>,
+    A: Automaton,
 {
     automaton: A,
+    start: StateID,
 }
 
 /// A reference to a [`Pattern`] that matches a single input.
 ///
 /// [`Pattern`]: ../struct.Pattern.html
 #[derive(Debug, Clone)]
-pub struct Matcher<'a, S = usize, A = DenseDFA<&'a [S], S>>
+pub struct Matcher<'a, A = dense::DFA<&'a [u32]>>
 where
-    S: StateID,
-    A: DFA<ID = S>,
+    A: Automaton,
 {
     automaton: A,
-    state: S,
+    state: StateID,
     _lt: PhantomData<&'a ()>,
 }
 
@@ -86,9 +87,10 @@ impl Pattern {
     /// // sequence when it's followed by non-matching characters:
     /// assert!(pattern.display_matches(&"hello world! aaaaab"));
     /// ```
-    pub fn new(pattern: &str) -> Result<Self, Error> {
-        let automaton = DenseDFA::new(pattern)?;
-        Ok(Pattern { automaton })
+    pub fn new(pattern: &str) -> Result<Self, dense::BuildError> {
+        let automaton = dense::DFA::new(pattern)?;
+        let start = automaton.universal_start_state(Anchored::No).expect("I hope this works");
+        Ok(Pattern { automaton, start })
     }
 
     /// Returns a new `Pattern` anchored at the beginning of the input stream,
@@ -120,24 +122,26 @@ impl Pattern {
     ///     .expect("regex is not invalid");
     /// assert!(pattern2.display_matches(&"hello world! aaaaab"));
     /// ```
-    pub fn new_anchored(pattern: &str) -> Result<Self, Error> {
-        let automaton = dense::Builder::new().anchored(true).build(pattern)?;
-        Ok(Pattern { automaton })
+    pub fn new_anchored(pattern: &str) -> Result<Self, dense::BuildError> {
+        let automaton = dense::Builder::new()
+            .configure(dense::DFA::config().start_kind(StartKind::Anchored))
+            .build(pattern)?;
+        let start = automaton.universal_start_state(Anchored::Yes).expect("I hope this works");
+        Ok(Pattern { automaton, start  })
     }
 }
 
 impl FromStr for Pattern {
-    type Err = Error;
+    type Err = dense::BuildError;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::new(s)
     }
 }
 
-impl<S, A> Pattern<S, A>
+impl<A> Pattern<A>
 where
-    S: StateID,
-    A: DFA<ID = S>,
-    Self: for<'a> ToMatcher<'a, S>,
+    A: Automaton,
+    Self: for<'a> ToMatcher<'a>,
 {
     /// Returns `true` if this pattern matches the given string.
     #[inline]
@@ -220,16 +224,14 @@ where
 
 // === impl Matcher ===
 
-impl<'a, S, A> Matcher<'a, S, A>
+impl<'a, A> Matcher<'a, A>
 where
-    S: StateID,
-    A: DFA<ID = S>,
+    A: Automaton,
 {
-    fn new(automaton: A) -> Self {
-        let state = automaton.start_state();
+    fn new(automaton: A, start_state: StateID) -> Self {
         Self {
             automaton,
-            state,
+            state: start_state,
             _lt: PhantomData,
         }
     }
@@ -248,7 +250,7 @@ where
     /// provided.
     #[inline]
     pub fn is_matched(&self) -> bool {
-        self.automaton.is_match_state(self.state)
+        self.automaton.is_match_state(self.automaton.next_eoi_state(self.state))
     }
 
     /// Returns `true` if this pattern matches the formatted output of the given
@@ -293,10 +295,9 @@ where
     }
 }
 
-impl<'a, S, A> fmt::Write for Matcher<'a, S, A>
+impl<'a, A> fmt::Write for Matcher<'a, A>
 where
-    S: StateID,
-    A: DFA<ID = S>,
+    A: Automaton,
 {
     fn write_str(&mut self, s: &str) -> fmt::Result {
         for &byte in s.as_bytes() {
@@ -309,10 +310,9 @@ where
     }
 }
 
-impl<'a, S, A> io::Write for Matcher<'a, S, A>
+impl<'a, A> io::Write for Matcher<'a, A>
 where
-    S: StateID,
-    A: DFA<ID = S>,
+    A: Automaton,
 {
     fn write(&mut self, bytes: &[u8]) -> Result<usize, io::Error> {
         let mut i = 0;
@@ -331,38 +331,33 @@ where
     }
 }
 
-pub trait ToMatcher<'a, S>
+pub trait ToMatcher<'a>
 where
     Self: crate::sealed::Sealed,
-    S: StateID + 'a,
 {
-    type Automaton: DFA<ID = S>;
-    fn matcher(&'a self) -> Matcher<'a, S, Self::Automaton>;
+    type Automaton: Automaton;
+    fn matcher(&'a self) -> Matcher<'a, Self::Automaton>;
 }
 
-impl<S> crate::sealed::Sealed for Pattern<S, DenseDFA<Vec<S>, S>> where S: StateID {}
+impl crate::sealed::Sealed for Pattern<dense::DFA<Vec<u32>>> {}
 
-impl<'a, S> ToMatcher<'a, S> for Pattern<S, DenseDFA<Vec<S>, S>>
-where
-    S: StateID + 'a,
+impl<'a> ToMatcher<'a> for Pattern<dense::DFA<Vec<u32>>>
 {
-    type Automaton = DenseDFA<&'a [S], S>;
-    fn matcher(&'a self) -> Matcher<'a, S, Self::Automaton> {
-        Matcher::new(self.automaton.as_ref())
+    type Automaton = dense::DFA<&'a [u32]>;
+    fn matcher(&'a self) -> Matcher<'a, Self::Automaton> {
+        Matcher::new(self.automaton.as_ref(), self.start)
     }
 }
 
-impl<'a, S> ToMatcher<'a, S> for Pattern<S, SparseDFA<Vec<u8>, S>>
-where
-    S: StateID + 'a,
+impl<'a> ToMatcher<'a> for Pattern<sparse::DFA<Vec<u8>>>
 {
-    type Automaton = SparseDFA<&'a [u8], S>;
-    fn matcher(&'a self) -> Matcher<'a, S, Self::Automaton> {
-        Matcher::new(self.automaton.as_ref())
+    type Automaton = sparse::DFA<&'a [u8]>;
+    fn matcher(&'a self) -> Matcher<'a, Self::Automaton> {
+        Matcher::new(self.automaton.as_ref(), self.start)
     }
 }
 
-impl<S> crate::sealed::Sealed for Pattern<S, SparseDFA<Vec<u8>, S>> where S: StateID {}
+impl crate::sealed::Sealed for Pattern<sparse::DFA<Vec<u8>>> {}
 
 mod sealed {
     pub trait Sealed {}
@@ -409,7 +404,7 @@ mod test {
         }
     }
 
-    fn test_debug_matches(new_pattern: impl Fn(&str) -> Result<Pattern, Error>) {
+    fn test_debug_matches(new_pattern: impl Fn(&str) -> Result<Pattern, dense::BuildError>) {
         let pat = new_pattern("hello world").unwrap();
         assert!(pat.debug_matches(&Str::hello_world()));
 
@@ -420,7 +415,7 @@ mod test {
         assert_eq!(pat.debug_matches(&Str::hello_world()), false);
     }
 
-    fn test_display_matches(new_pattern: impl Fn(&str) -> Result<Pattern, Error>) {
+    fn test_display_matches(new_pattern: impl Fn(&str) -> Result<Pattern, dense::BuildError>) {
         let pat = new_pattern("hello world").unwrap();
         assert!(pat.display_matches(&Str::hello_world()));
 
@@ -431,7 +426,7 @@ mod test {
         assert_eq!(pat.display_matches(&Str::hello_world()), false);
     }
 
-    fn test_reader_matches(new_pattern: impl Fn(&str) -> Result<Pattern, Error>) {
+    fn test_reader_matches(new_pattern: impl Fn(&str) -> Result<Pattern, dense::BuildError>) {
         let pat = new_pattern("hello world").unwrap();
         assert!(pat
             .read_matches(Str::hello_world().to_reader())
@@ -450,7 +445,7 @@ mod test {
         );
     }
 
-    fn test_debug_rep_patterns(new_pattern: impl Fn(&str) -> Result<Pattern, Error>) {
+    fn test_debug_rep_patterns(new_pattern: impl Fn(&str) -> Result<Pattern, dense::BuildError>) {
         let pat = new_pattern("a+b").unwrap();
         assert!(pat.debug_matches(&Str::new("ab")));
         assert!(pat.debug_matches(&Str::new("aaaab")));
