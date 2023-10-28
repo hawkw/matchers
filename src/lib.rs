@@ -41,6 +41,17 @@ pub enum Error {
     NoUniversalStartState
 }
 
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Error::BuildError(e) => e.fmt(f),
+            Error::NoUniversalStartState => write!(f, "The supplied pattern did not have a universal start state"),
+        }
+    }
+}
+
+impl std::error::Error for Error {}
+
 impl From<dense::BuildError> for Error {
     fn from(err: dense::BuildError) -> Self {
         Self::BuildError(err)
