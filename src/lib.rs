@@ -33,6 +33,20 @@ use regex_automata::dfa::{dense, sparse, StartKind};
 use regex_automata::util::primitives::StateID;
 use std::{fmt, io, marker::PhantomData, str::FromStr};
 
+
+#[non_exhaustive]
+#[derive(Debug, Clone)]
+pub enum Error {
+    BuildError(dense::BuildError),
+    NoUniversalStartState
+}
+
+impl From<dense::BuildError> for Error {
+    fn from(err: dense::BuildError) -> Self {
+        Self::BuildError(err)
+    }
+}
+
 /// A compiled match pattern that can match multipe inputs, or return a
 /// [`Matcher`] that matches a single input.
 ///
@@ -87,11 +101,11 @@ impl Pattern {
     /// // sequence when it's followed by non-matching characters:
     /// assert!(pattern.display_matches(&"hello world! aaaaab"));
     /// ```
-    pub fn new(pattern: &str) -> Result<Self, dense::BuildError> {
+    pub fn new(pattern: &str) -> Result<Self, Error> {
         let automaton = dense::DFA::new(pattern)?;
         let start = automaton
             .universal_start_state(Anchored::No)
-            .expect("I hope this works");
+            .ok_or(Error::NoUniversalStartState)?;
         Ok(Pattern { automaton, start })
     }
 
@@ -124,19 +138,19 @@ impl Pattern {
     ///     .expect("regex is not invalid");
     /// assert!(pattern2.display_matches(&"hello world! aaaaab"));
     /// ```
-    pub fn new_anchored(pattern: &str) -> Result<Self, dense::BuildError> {
+    pub fn new_anchored(pattern: &str) -> Result<Self, Error> {
         let automaton = dense::Builder::new()
             .configure(dense::DFA::config().start_kind(StartKind::Anchored))
             .build(pattern)?;
         let start = automaton
             .universal_start_state(Anchored::Yes)
-            .expect("I hope this works");
+            .ok_or(Error::NoUniversalStartState)?;
         Ok(Pattern { automaton, start })
     }
 }
 
 impl FromStr for Pattern {
-    type Err = dense::BuildError;
+    type Err = Error;
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         Self::new(s)
     }
@@ -407,7 +421,7 @@ mod test {
         }
     }
 
-    fn test_debug_matches(new_pattern: impl Fn(&str) -> Result<Pattern, dense::BuildError>) {
+    fn test_debug_matches(new_pattern: impl Fn(&str) -> Result<Pattern, Error>) {
         let pat = new_pattern("hello world").unwrap();
         assert!(pat.debug_matches(&Str::hello_world()));
 
@@ -418,7 +432,7 @@ mod test {
         assert_eq!(pat.debug_matches(&Str::hello_world()), false);
     }
 
-    fn test_display_matches(new_pattern: impl Fn(&str) -> Result<Pattern, dense::BuildError>) {
+    fn test_display_matches(new_pattern: impl Fn(&str) -> Result<Pattern, Error>) {
         let pat = new_pattern("hello world").unwrap();
         assert!(pat.display_matches(&Str::hello_world()));
 
@@ -429,7 +443,7 @@ mod test {
         assert_eq!(pat.display_matches(&Str::hello_world()), false);
     }
 
-    fn test_reader_matches(new_pattern: impl Fn(&str) -> Result<Pattern, dense::BuildError>) {
+    fn test_reader_matches(new_pattern: impl Fn(&str) -> Result<Pattern, Error>) {
         let pat = new_pattern("hello world").unwrap();
         assert!(pat
             .read_matches(Str::hello_world().to_reader())
@@ -448,7 +462,7 @@ mod test {
         );
     }
 
-    fn test_debug_rep_patterns(new_pattern: impl Fn(&str) -> Result<Pattern, dense::BuildError>) {
+    fn test_debug_rep_patterns(new_pattern: impl Fn(&str) -> Result<Pattern, Error>) {
         let pat = new_pattern("a+b").unwrap();
         assert!(pat.debug_matches(&Str::new("ab")));
         assert!(pat.debug_matches(&Str::new("aaaab")));
