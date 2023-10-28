@@ -18,4 +18,4 @@ keywords = ["regex", "match", "pattern", "streaming"]
 maintenance = { status = "experimental" }
 
 [dependencies]
-regex-automata = "0.3"
+regex-automata = "0.4"
