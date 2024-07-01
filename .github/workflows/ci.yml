@@ -42,7 +42,12 @@ jobs:
       - name: Run tests
         uses: actions-rs/cargo@v1
         with:
-          command: build
+          command: test
+      - name: Run tests (unicode)
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --features unicode
 
   clippy_check:
     runs-on: ubuntu-latest
