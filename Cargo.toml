@@ -18,7 +18,7 @@ keywords = ["regex", "match", "pattern", "streaming"]
 maintenance = { status = "experimental" }
 
 [dependencies]
-regex-automata = { version = "0.4", default-features = false, features = ["syntax", "dfa-build", "dfa-search"] }
+regex-automata = { version = "0.4", default-features = false, features = ["std", "syntax", "dfa-build", "dfa-search"] }
 
 [features]
 unicode = ["regex-automata/unicode"]

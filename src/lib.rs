@@ -321,6 +321,14 @@ impl<A: Automaton> io::Write for Matcher<A> {
     }
 }
 
+const _: () = {
+    fn assert_is_std_error<T: std::error::Error>() {}
+
+    fn assert_build_error_is_std_error() {
+        assert_is_std_error::<BuildError>();
+    }
+};
+
 #[cfg(test)]
 mod test {
     use super::*;
