@@ -50,6 +50,7 @@ pub struct Pattern<A = DFA<Vec<u32>>> {
 #[derive(Debug, Clone)]
 pub struct Matcher<A = DFA<Vec<u32>>> {
     automaton: A,
+    // Safety invariant: state must always be a valid state for `A`
     state: StateID,
 }
 
@@ -144,6 +145,7 @@ impl<A: Automaton> Pattern<A> {
         let config = regex_automata::util::start::Config::new().anchored(self.anchored);
         Matcher {
             automaton: &self.automaton,
+            // Safety invariant upheld here: start_state is guaranteed to always return a valid state
             state: self.automaton.start_state(&config).unwrap(),
         }
     }
@@ -235,9 +237,9 @@ where
 {
     #[inline]
     fn advance(&mut self, input: u8) {
-        // It's safe to call `next_state_unchecked` since the matcher may
-        // only be constructed by a `Pattern`, which, in turn, can only be
-        // constructed with a valid DFA.
+        // Safety: self.state has an invariant that it must always be a valid state, which
+        // is what next_state_unchecked needs to be safe.
+        // We uphold self.state's invariant here, since next_state_unchecked guarantees it returns a valid state
         self.state = unsafe { self.automaton.next_state_unchecked(self.state, input) };
     }
 
