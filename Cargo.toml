@@ -1,6 +1,6 @@
 [package]
 name = "matchers"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Eliza Weisman <eliza@buoyant.io>"]
 edition = "2018"
 license = "MIT"
@@ -21,4 +21,5 @@ maintenance = { status = "experimental" }
 regex-automata = { version = "0.4", default-features = false, features = ["syntax", "dfa-build", "dfa-search"] }
 
 [features]
+std = ["regex-automata/std"]
 unicode = ["regex-automata/unicode"]
